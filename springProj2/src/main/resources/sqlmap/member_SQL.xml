@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.member.mapper.MemberMapper">
+	<!-- 
+	 property : vo의 멤버변수명
+	 column : select문의 컬럼명 
+	-->
+	<resultMap type="memberVO" id="memberMap">
+		<id property="memberid" column="MEMBERID" />
+		<result property="password" column="PASSWORD" />
+		<result property="name" column="NAME" />
+		<result property="email" column="EMAIL" />
+		<result property="regdate" column="REGDATE" />
+		<result property="introduction" column="INTRODUCTION" />
+		<collection property="cardList" resultMap="cardMap">		
+		</collection>
+	</resultMap>
+	
+	<resultMap type="cardVO" id="cardMap">
+		<result property="memberid" column="MEMBERID" />
+		<result property="no" column="NO" />
+		<result property="validMonth" column="VALID_MONTH" />
+	</resultMap>
+	
+	<!-- 회원상세정보 resultMap -->
+	<resultMap type="memberVO" id="memberAuthMap">
+		<id     property="memberid" column="MEMBERID" />
+		<result property="password" column="PASSWORD" />
+		<result property="name" column="NAME" />
+		<result property="email" column="EMAIL" />
+		<result property="regdate" column="REGDATE" />
+		<result property="introduction" column="INTRODUCTION" />
+		<result property="memberSertPic" column="MEMBER_SERT_PIC" />
+		<result property="enabled" column="ENABLED" />
+		
+		<collection property="authList" resultMap="authMap"></collection>
+	</resultMap>
+	
+	<resultMap type="memberAuth" id="authMap">
+		<result property="memberid" column="MEMBERID" />
+		<result property="auth" column="AUTH" />
+	</resultMap>
+	
+	<!-- 회원가입 -->
+	<insert id="insert" parameterType="memberVO">
+		INSERT INTO MEMBER(MEMBERID,PASSWORD,NAME,EMAIL,REGDATE)
+		VALUES(#{memberid},#{password},#{name},#{email},SYSDATE)
+	</insert>
+	
+	<!-- 회원정보 목록 -->
+	<select id="select" resultMap="memberMap">
+		SELECT M.MEMBERID,M.PASSWORD,M.NAME,M.EMAIL,M.REGDATE,M.INTRODUCTION
+		     , C.NO, C.VALID_MONTH, C.MEMBERID
+		FROM   MEMBER M, CARD C
+		WHERE  M.MEMBERID = C.MEMBERID
+		ORDER BY C.NO DESC
+	</select>
+	
+	<!-- 회원 상세 정보 -->
+	<select id="read" parameterType="String" resultMap="memberAuthMap">
+		SELECT M.MEMBERID,M.PASSWORD,M.NAME,M.EMAIL,M.REGDATE
+		     , M.INTRODUCTION,M.MEMBER_SERT_PIC,M.ENABLED
+		     , MA.AUTH
+		FROM   MEMBER M LEFT OUTER JOIN MEMBER_AUTH MA
+		ON(M.MEMBERID = MA.MEMBERID)
+		WHERE  M.MEMBERID=#{userName}
+	</select>
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+

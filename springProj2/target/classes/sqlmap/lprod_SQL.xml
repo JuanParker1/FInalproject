@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.lprod.mapper.LprodMapper">
+	<resultMap type="lprodVO" id="lprodMap">
+		<id property="lprodGu" column="LPROD_GU" />
+		<result property="rnum" column="RNUM" />
+		<result property="lprodNm" column="LPROD_NM" />
+		<collection property="buyerVO" resultMap="buyerMap"></collection>
+	</resultMap>
+	
+	<resultMap type="buyerVO" id="buyerMap">
+		<id property="buyerId" column="BUYER_ID" />
+		<result property="buyerName" column="BUYER_NAME" />
+		<result property="buyerLgu" column="BUYER_LGU" />
+	</resultMap>
+	<!-- 상품분류 별 거래처 목록 -->
+	<!-- 
+	parameter : 
+		{keyWord=캐주,currentPage=1,size=10}
+	-->
+	<select id="list" parameterType="hashMap" resultMap="lprodMap">
+		SELECT T.RNUM, T.LPROD_GU, T.LPROD_NM
+		     , T.BUYER_ID, T.BUYER_NAME, T.BUYER_LGU
+		FROM
+		(
+		    SELECT ROW_NUMBER() OVER(ORDER BY LPROD_NM, BUYER_ID) RNUM
+		         , L.LPROD_GU
+		         , L.LPROD_NM
+		         , B.BUYER_ID
+		         , B.BUYER_NAME
+		         , B.BUYER_LGU
+		    FROM   LPROD L INNER JOIN BUYER B
+		    ON(L.LPROD_GU = B.BUYER_LGU)
+		    WHERE  1 = 1
+		    <if test="keyWord!=null and keyWord!=''">
+			    AND    (L.LPROD_GU LIKE '%'||#{keyWord}||'%'
+			    OR     L.LPROD_NM LIKE '%'||#{keyWord}||'%'
+			    OR     B.BUYER_ID LIKE '%'||#{keyWord}||'%'
+			    OR     B.BUYER_NAME LIKE '%'||#{keyWord}||'%')
+		    </if>
+		) T
+		WHERE T.RNUM BETWEEN #{currentPage}*7-6 AND #{currentPage}*7
+	</select>
+	
+	<!-- 상품분류 별 거래처 목록의 totalCount -->
+	<select id="listCount" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM   LPROD L INNER JOIN BUYER B
+		ON(L.LPROD_GU = B.BUYER_LGU)
+		WHERE  1 = 1
+	    <if test="keyWord!=null and keyWord!=''">
+		    AND    (L.LPROD_GU LIKE '%'||#{keyWord}||'%'
+		    OR     L.LPROD_NM LIKE '%'||#{keyWord}||'%'
+		    OR     B.BUYER_ID LIKE '%'||#{keyWord}||'%'
+		    OR     B.BUYER_NAME LIKE '%'||#{keyWord}||'%')
+	    </if>
+	</select>
+	<!-- 거래처 상세 정보 -->
+	<select id="detail" parameterType="String" resultType="buyerVO">
+		SELECT (SELECT L.LPROD_NM FROM LPROD L WHERE L.LPROD_GU = B.BUYER_LGU) LPROD_NM
+		     , B.BUYER_ID
+		     , B.BUYER_NAME
+		     , B.BUYER_LGU
+		     , B.BUYER_BANK
+		     , B.BUYER_BANKNO
+		     , B.BUYER_BANKNAME
+		     , B.BUYER_ZIP
+		     , B.BUYER_ADD1
+		     , B.BUYER_ADD2
+		     , B.BUYER_COMTEL
+		     , B.BUYER_FAX
+		     , B.BUYER_MAIL
+		     , B.BUYER_CHARGER
+		     , B.BUYER_TELEXT
+		     , B.BUYER_IMG
+		FROM   BUYER B
+		WHERE  B.BUYER_ID = #{buyerId}
+	</select>
+	
+	<!-- 거래처 수정 -->
+	<update id="modify" parameterType="buyerVO">
+		UPDATE BUYER
+		SET    BUYER_MAIL = #{buyerMail}, BUYER_COMTEL = #{buyerComtel},
+		       BUYER_CHARGER = #{buyerCharger}, BUYER_IMG = #{buyerImg}
+		WHERE  BUYER_ID = #{buyerId}
+	</update>
+	
+	<!-- 로그인 
+	기본키의 2가지 특징. Not Null, 유일성/중복제거(no duplicate) -->
+	<select id="loginPost" parameterType="memberVO" resultType="memberVO">
+		SELECT MEMBERID,PASSWORD,NAME,EMAIL,REGDATE,INTRODUCTION,MEMBER_SERT_PIC
+		FROM MEMBER
+		WHERE  MEMBERID = #{memberid}
+		AND    PASSWORD = PKG_CRYPTO.ENCRYPT(#{password})
+	</select>
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 
+		[마이바티스]
+		스프링에서 "_"에서 사용한 컬럼명을 사용 시 테이블 컬럼명에 "_"가 있을 경우 카멜케이스로 읽어준다
+		member 테이블의 컬럼명이 mem_id일 경우 memId로 사용가능하도록 도와준다.
+		예 ) cart_prod -> cartProd
+	 -->
+	<settings>
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+	</settings>
+	
+	<!-- 자주 사용하는 타입의 별칭이 들어감 -->
+	<!-- Alias 별칭은 보통 카멜표기법(가운데만 대문자)를 사용한다. -->
+	<typeAliases>
+		<typeAlias type="kr.or.ddit.cus.vo.CusVO" alias="cusVO"/>
+		<typeAlias type="kr.or.ddit.cus.vo.AttachFilesVO" alias="attachFilesVO"/>
+		<typeAlias type="kr.or.ddit.cus.vo.UserAuth" alias="userAuth"/>
+	</typeAliases>
+</configuration>

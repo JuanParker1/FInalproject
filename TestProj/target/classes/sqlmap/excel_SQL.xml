@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.excel.mapper.ExcelMapper">
+
+	<insert id="insertExcel" parameterType="excelVO">
+		<foreach collection="excelContent" item="item" index="index" separator=" "
+			open="INSERT ALL" close="SELECT * FROM DUAL">
+			 INTO EXCEL(NAME,PASSWORD,TEL) VALUES(#{item.A},#{item.B},#{item.C})
+		</foreach>
+	</insert>
+
+</mapper>  
+  

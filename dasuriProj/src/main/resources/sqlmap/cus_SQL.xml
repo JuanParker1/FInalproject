@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cus.mapper.CusMapper">
+	<resultMap type="cusVO" id="cusMap">
+		<id property="cusNum" column="CUS_NUM" />
+		<result property="cusNm" column="CUS_NM"/>	
+		<result property="cusAddr" column="CUS_ADDR"/>	
+		<result property="cusPne" column="CUS_PNE"/>
+		<collection property="attachFilesVO" resultMap="fileMap"/>	
+	</resultMap>
+	 <resultMap type="attachFilesVO" id="fileMap">
+	 	<id property="id" column="ID"/>
+	 	<result property="uploadFileName" column="CUS_PIC"/>
+	 </resultMap>
+	 
+	 
+	 <resultMap type="cusVO" id="userAuthMap">
+		<id		property="username" column="USERNAME"/>
+		<result property="cusNm" column="CUS_NM"/>
+		<result property="cusAddr" column="CUS_ADDR"/>
+		<result property="cusPne" column="CUS_PNE"/>
+		<result property="password" column="PASSWORD"/>
+		<result property="sal" column="SAL"/>
+		<result property="enabled" column="ENABLED" />
+		<collection property="userAuthlist" resultMap="authMap"/>
+	</resultMap>
+	<resultMap type="userAuth" id="authMap">
+		<result property="username" column="USERNAME" />
+		<result property="auth" column="AUTH" />
+	</resultMap>
+	
+	
+	
+	<insert id ="insert" parameterType="cusVO">
+	<!-- 매우매우중요 -->
+		<selectKey order="BEFORE" keyProperty="cusNum" resultType="String">
+			SELECT 'CUS' || LPAD(NVL(MAX(SUBSTR(CUS_NUM,4)),0)+1,5,'0') FROM CUS
+		</selectKey>
+	    INSERT INTO CUS(CUS_NUM,CUS_NM,CUS_ADDR,CUS_PNE)
+			   VALUES(#{cusNum},#{cusNm},#{cusPost}|| ' ' || #{cusAddr} || ' ' || #{cusAddr2}, #{cusPne})
+	</insert>
+	
+	<!-- attach_files 테이블로 첨부파일 insert -->
+	<!-- 
+		open은 앞에 무엇이 들어갈 것인가 close는 무엇으로 문장을 끝낼 것인가를 나타낸다.
+		impl에서 트랜젝션 설정을 관리하기에 serviceimpl로 가서 설정한다.
+		
+		INSERT ALL (open) 
+		INTO ATTACH_FILES(ID,SEQ,UPLOAD_FILE_NAME,UPLOAD_FILE_SIZE,REGIST_DT,REGISTER_ID)
+		VALUES('CUS000001',1,'test.jpg',12345,SYSDATE,'admin')
+		INTO ATTACH_FILES(ID,SEQ,UPLOAD_FILE_NAME,UPLOAD_FILE_SIZE,REGIST_DT,REGISTER_ID)
+		VALUES('CUS000001',2,'test.jpg',12345,SYSDATE,'admin')
+		INTO ATTACH_FILES(ID,SEQ,UPLOAD_FILE_NAME,UPLOAD_FILE_SIZE,REGIST_DT,REGISTER_ID)
+		VALUES('CUS000001',3,'test.jpg',12345,SYSDATE,'admin')
+		SELECT * FROM DUAL; (close)
+	 -->
+	<insert id="insertAttachFiles" parameterType="attachFilesVO">
+		<foreach collection="list" item="item" index="index"
+			open="INSERT ALL" separator=" " close="SELECT * FROM DUAL">
+			INTO ATTACH_FILES(ID,SEQ,UPLOAD_FILE_NAME,UPLOAD_FILE_SIZE,REGIST_DT,REGISTER_ID)
+			VALUES(#{item.id},#{item.seq},#{item.uploadFileName},#{item.uploadFileSize},SYSDATE,#{item.registerId})
+		</foreach>
+	</insert>	
+	
+	
+	<!-- 고객목록 출력 -->
+	<select id ="list" resultType="cusVO" parameterType="hashMap">
+		SELECT T.RNUM,T.CUS_NUM,T.CUS_NM,
+			   T.CUS_ADDR,T.CUS_PNE
+		  FROM
+		  (
+		  	 SELECT ROW_NUMBER()OVER(ORDER BY CUS_NUM, CUS_NM) RNUM,
+			        CUS_NUM,
+			        CUS_NM,
+			        CUS_ADDR,
+			        CUS_PNE
+			   FROM CUS
+			  WHERE 1 = 1
+			  <if test="keyWord!=null and keyWord!=''">
+                AND (
+                CUS_NUM LIKE '%'||#{keyWord}||'%'
+                OR CUS_NM LIKE '%'||#{keyWord}||'%'
+                OR CUS_ADDR LIKE '%'||#{keyWord}||'%'
+                OR CUS_PNE LIKE '%'||#{keyWord}||'%'
+                )
+             </if>
+              )T
+           WHERE T.RNUM BETWEEN #{currentPage}*#{size}-(#{size}-1) AND #{currentPage}*#{size}
+           ORDER BY T.RNUM DESC
+	</select>
+	
+	<!-- 상품분류 별 거래처 목록의 totalCount -->
+	<select id="cusCount" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		  FROM CUS
+		 WHERE 1 = 1 
+	</select>
+
+	
+	
+<!-- 	<select id="detail" parameterType="String" resultType="cusVO"> -->
+<!-- 		SELECT CUS_NUM, CUS_NM, CUS_ADDR, CUS_PNE, CUS_PIC -->
+<!-- 		  FROM CUS -->
+<!-- 		 WHERE CUS_NUM = #{cusNum} -->
+<!-- 	</select> -->
+	
+			<!-- 값이 없으면 출력되지 않기때문에 outer join으로 해주어야 출력이 된다. -->
+	<select id="detail" parameterType="String" resultMap="cusMap">
+		SELECT C.CUS_NUM, C.CUS_NM, C.CUS_ADDR, C.CUS_PNE, 
+		       A.ID, A.UPLOAD_FILE_NAME AS CUS_PIC        
+		  FROM CUS C, ATTACH_FILES A
+		 WHERE C.CUS_NUM = A.ID(+)
+		   AND C.CUS_NUM = #{cusNum}
+	</select>	
+		
+		
+	<select id="read" parameterType="String" resultMap="userAuthMap">
+		SELECT VU.CUS_NUM, VU.CUS_NM, VU.CUS_ADDR, VU.CUS_PNE, VU.ENABLED, VU.PASSWORD, VU.SAL, VU.AUTH
+  		  FROM VW_USER VU LEFT OUTER JOIN VW_USER_AUTH VUA
+            ON (VU.USERNAME = VUA.USERNAME)
+         WHERE M.MEMBERID=#{userName}
+	</select>	
+		
+</mapper>  
+  
